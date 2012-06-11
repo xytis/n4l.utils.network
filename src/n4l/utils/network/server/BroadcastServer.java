@@ -7,22 +7,29 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import n4l.utils.network.protocol.Client;
 import n4l.utils.network.server.tcp.TCPServer;
 
 /**
  * @author xytis
  * 
  */
-public class Echo implements Server {
+public class BroadcastServer implements Server {
 	private Hashtable<String, Client> clients;
 
-	public Echo() {
+	public BroadcastServer() {
 		clients = new Hashtable<String, Client>();
 	}
 
 	public synchronized void addClient(String name, Client client) {
+		System.err.println("Adding client: " + name);
 		if (clients.get(name) != null) {
-			client.disconnect("User name exists");
+			try {
+				client.sendDisconnectNotification("User name exists");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return;
 		}
 
@@ -33,7 +40,7 @@ public class Echo implements Server {
 		Client client = clients.get(name);
 		if (client != null) {
 			clients.remove(name);
-			client.disconnect("Bye");
+			client.receiveDisconnectNotification("Bye");
 		}
 	}
 
@@ -44,16 +51,21 @@ public class Echo implements Server {
 			String key = (String) e.nextElement();
 			if (clients.get(key) == client) {
 				clients.remove(key);
-				client.disconnect("Bye");
+				client.receiveDisconnectNotification("Bye");
 			}
 		}
 	}
 
-	public synchronized void receiveMessage(String message) {
+	public synchronized void handleText(String message) {
 		Enumeration<Client> e = clients.elements();
 		while (e.hasMoreElements()) {
 			Client client = e.nextElement();
-			client.sendMessage(message);
+			try {
+				client.sendText(message);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
 	}
 
@@ -69,19 +81,19 @@ public class Echo implements Server {
 
 		return nameList;
 	}
-	
+
 	public static void main(String args[]) {
 		try {
-			Echo echoServer = new Echo();
-		
-			TCPServer tcpServer = new TCPServer(echoServer, 4321);
+			BroadcastServer server = new BroadcastServer();
+
+			TCPServer tcpServer = new TCPServer(server, 4321);
 			System.out.println("Started TCP server");
-			
+
 			tcpServer.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 }

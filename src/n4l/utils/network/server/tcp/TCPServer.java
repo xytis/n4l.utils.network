@@ -33,9 +33,9 @@ public class TCPServer extends Object implements Runnable {
 				System.out.println("Waiting for connection.");
 				Socket newConn = serverSocket.accept();
 				System.out.println("Client connected.");
-				TCPClient newClient = new TCPClient(server, newConn);
-				newClient.start();
 
+				@SuppressWarnings("unused")
+				TCPClient newClient = new TCPClient(server, newConn);
 			} catch (Exception e) {
 			}
 		}

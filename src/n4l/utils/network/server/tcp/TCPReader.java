@@ -1,14 +1,13 @@
 /**
  * 
  */
-package n4l.utils.network.client.tcp;
+package n4l.utils.network.server.tcp;
 
 import java.io.DataInputStream;
 import java.io.IOException;
 
 import n4l.utils.network.protocol.Client;
 import n4l.utils.network.protocol.Reader;
-import n4l.utils.network.server.tcp.TCPMessageTypes;
 
 /**
  * @author xytis
@@ -36,8 +35,8 @@ public class TCPReader extends Object implements Runnable, Reader {
 	@Override
 	public void stop() {
 		isRunning = false;
-		thread.interrupt();
-		// thread.stop();
+		// thread.interrupt();
+		thread.stop();
 		thread = null;
 	}
 
@@ -46,7 +45,6 @@ public class TCPReader extends Object implements Runnable, Reader {
 		while (isRunning) {
 			try {
 				int messageType = inStream.readInt();
-
 				switch (messageType) {
 				case TCPMessageTypes.TEXT:
 					readText();
@@ -73,7 +71,7 @@ public class TCPReader extends Object implements Runnable, Reader {
 					break;
 				}
 			} catch (Exception e) {
-				client.receiveDisconnectNotification("Something wrong in server side...");
+				client.receiveDisconnectNotification("Something wrong in client side...");
 			}
 		}
 	}
@@ -97,17 +95,26 @@ public class TCPReader extends Object implements Runnable, Reader {
 
 	@Override
 	public void readLoginResponce() throws IOException {
-		System.err.println("Ignoring login responce!");
-		skip(TCPMessageTypes.LOGIN_RESPONCE);
+		int length = inStream.readInt(); // Unused length
+		byte[] messageBytes;
+
+		length = inStream.readInt();
+		messageBytes = new byte[length];
+		inStream.readFully(messageBytes);
+		String username = new String(messageBytes, "UTF-8");
+
+		length = inStream.readInt();
+		messageBytes = new byte[length];
+		inStream.readFully(messageBytes);
+		String password = new String(messageBytes, "UTF-8");
+
+		client.receiveLoginResponce(username, password);
 	}
 
 	@Override
 	public void readLoginStatus() throws IOException {
-		@SuppressWarnings("unused")
-		int length = inStream.readInt();
-
-		int status = inStream.readInt();
-		client.receiveLoginStatus(status);
+		System.err.println("Ignoring login status!");
+		skip(TCPMessageTypes.LOGIN_STATUS);
 	}
 
 	@Override
@@ -118,6 +125,7 @@ public class TCPReader extends Object implements Runnable, Reader {
 		String status = new String(messageBytes, "UTF-8");
 
 		client.receiveDisconnectNotification(status);
+
 	}
 
 	@Override
